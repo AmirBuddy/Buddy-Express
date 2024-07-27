@@ -1,102 +1,119 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
-import { Router } from './router.js';
-import { Request } from './types/request.js';
-import { Response } from './types/response.js';
-import { Middleware, NextFunction } from './types/middleware.js';
-import { RouteHandler } from './types/route.js';
+import {
+  RequestHandler,
+  SimpleHandler,
+  NextHandler,
+  ErrorHandler
+} from './types/RequestHandler.js';
+import { Request } from './types/Request.js';
+import { Response } from './types/Response.js';
+import { NextFunction } from './types/NextFunction.js';
+import { IRoute } from './types/IRoute.js';
 
-class App {
-  private router: Router;
-  private middlewares: Middleware[] = [];
+class AmirExpress {
+  private requestHandlers: RequestHandler[] = [];
+  private routes: IRoute[] = [];
 
-  constructor() {
-    this.router = new Router();
+  constructor() {}
+
+  use(requestHandler: RequestHandler) {
+    this.requestHandlers.push(requestHandler);
   }
 
-  /**
-   * Registers a middleware.
-   * @param middleware - The middleware function.
-   */
-  use(middleware: Middleware) {
-    this.middlewares.push(middleware);
+  get(url: string, ...requestHandlers: RequestHandler[]) {
+    this.routes.push({ method: 'GET', url, handlers: requestHandlers });
   }
 
-  /**
-   * Starts the server.
-   * @param port - The port number to listen on.
-   */
-  listen(port: number) {
+  post(url: string, ...requestHandlers: RequestHandler[]) {
+    this.routes.push({ method: 'POST', url, handlers: requestHandlers });
+  }
+
+  put(url: string, ...requestHandlers: RequestHandler[]) {
+    this.routes.push({ method: 'PUT', url, handlers: requestHandlers });
+  }
+
+  delete(url: string, ...requestHandlers: RequestHandler[]) {
+    this.routes.push({ method: 'DELETE', url, handlers: requestHandlers });
+  }
+
+  listen(port: number, callback?: () => void) {
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-      const enhancedReq = req as Request;
-      const enhancedRes = res as Response;
+      const request = req as Request;
+      const response = res as Response;
 
-      // Add JSON response method
-      enhancedRes.json = (data: any) => {
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify(data));
-      };
-
-      // Add redirect response method
-      enhancedRes.redirect = (url: string) => {
-        res.statusCode = 302;
-        res.setHeader('Location', url);
-        res.end();
-      };
-
-      // Process middlewares
-      const processMiddlewares = (index: number) => {
-        if (index >= this.middlewares.length) {
-          this.router.handle(enhancedReq, enhancedRes);
-          return;
+      // Execute global request handlers
+      let idx = 0;
+      const next: NextFunction = (err?: any) => {
+        if (err) {
+          return this.handleError(err, request, response);
         }
-        const next: NextFunction = () => processMiddlewares(index + 1);
-        this.middlewares[index](enhancedReq, enhancedRes, next);
+        if (idx >= this.requestHandlers.length) {
+          this.handleRoute(request, response);
+        } else {
+          const handler = this.requestHandlers[idx++];
+          this.executeHandler(handler, request, response, next);
+        }
       };
-
-      processMiddlewares(0);
+      next();
     });
 
-    server.listen(port, () => {
-      console.log(`Server is running on port ${port}`);
-    });
+    server.listen(port, callback);
   }
 
-  /**
-   * Registers a route handler for GET requests.
-   * @param url - The URL path.
-   * @param handler - The route handler function.
-   */
-  get(url: string, handler: RouteHandler) {
-    this.router.on('GET', url, handler);
+  private handleRoute(request: Request, response: Response) {
+    const { method, url } = request;
+    const route = this.routes.find(
+      (route) => route.method === method && route.url === url
+    );
+
+    if (route) {
+      let idx = 0;
+      const next: NextFunction = (err?: any) => {
+        if (err) {
+          return this.handleError(err, request, response);
+        }
+        if (idx >= route.handlers.length) {
+          response.end();
+        } else {
+          const handler = route.handlers[idx++];
+          this.executeHandler(handler, request, response, next);
+        }
+      };
+      next();
+    } else {
+      response.statusCode = 404;
+      response.end('Not Found');
+    }
   }
 
-  /**
-   * Registers a route handler for POST requests.
-   * @param url - The URL path.
-   * @param handler - The route handler function.
-   */
-  post(url: string, handler: RouteHandler) {
-    this.router.on('POST', url, handler);
+  private handleError(err: any, request: Request, response: Response) {
+    const errorHandler = this.requestHandlers.find(
+      (handler) => (handler as ErrorHandler).length === 4
+    );
+    if (errorHandler) {
+      (errorHandler as ErrorHandler)(err, request, response, () => {});
+    } else {
+      response.statusCode = 500;
+      response.end('Internal Server Error');
+    }
   }
 
-  /**
-   * Registers a route handler for PUT requests.
-   * @param url - The URL path.
-   * @param handler - The route handler function.
-   */
-  put(url: string, handler: RouteHandler) {
-    this.router.on('PUT', url, handler);
-  }
-
-  /**
-   * Registers a route handler for DELETE requests.
-   * @param url - The URL path.
-   * @param handler - The route handler function.
-   */
-  delete(url: string, handler: RouteHandler) {
-    this.router.on('DELETE', url, handler);
+  private executeHandler(
+    handler: RequestHandler,
+    request: Request,
+    response: Response,
+    next: NextFunction
+  ) {
+    if ((handler as ErrorHandler).length === 4) {
+      next(); // Skip error handlers in normal flow
+    } else if ((handler as NextHandler).length === 3) {
+      (handler as NextHandler)(request, response, next);
+    } else {
+      (handler as SimpleHandler)(request, response);
+      next();
+    }
   }
 }
 
-export const amirexpress = () => new App();
+export const amirexpress = () => new AmirExpress();
