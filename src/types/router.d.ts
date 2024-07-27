@@ -1,20 +1,5 @@
 import { IncomingMessage, ServerResponse } from 'node:http';
-
-/**
- * A handler for HTTP routes.
- * @param req - The incoming HTTP request.
- * @param res - The server response.
- */
-export type RouteHandler = (req: IncomingMessage, res: ServerResponse) => void;
-
-/**
- * A route configuration.
- */
-export interface Route {
-  method: string;
-  url: string;
-  handler: RouteHandler;
-}
+import { RouteHandler } from './route';
 
 /**
  * The router interface.

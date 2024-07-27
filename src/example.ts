@@ -1,15 +1,21 @@
-import { createServer } from 'node:http';
-import Router from './index.js';
+import { amirexpress } from './index.js';
+import { queryParser } from './middleware.js';
+import { EnhancedRequest } from './request.js';
+import { EnhancedResponse } from './response.js';
 
-const router = new Router();
+const app = amirexpress();
 
-router.on('GET', '/lol', (req, res) => {
-  res.statusCode = 200;
-  res.end('Hello, World!');
+// Use query parser middleware
+app.use(queryParser);
+
+// Define routes
+app.get('/', (req: EnhancedRequest, res: EnhancedResponse) => {
+  res.json({ message: 'Hello World' });
 });
 
-const server = createServer((req, res) => router.handle(req, res));
-
-server.listen(3000, () => {
-  console.log('Server is listening on port 3000');
+app.get('/redirect', (req: EnhancedRequest, res: EnhancedResponse) => {
+  res.redirect('https://www.example.com');
 });
+
+// Start server
+app.listen(3000);
