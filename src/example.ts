@@ -1,4 +1,7 @@
 import { amirexpress } from './amirexpress/index.js';
+import { Request } from './amirexpress/types/Request.js';
+import { Response } from './amirexpress/implementations/Response.js';
+import { NextFunction } from './amirexpress/types/NextFunction.js';
 
 const app = amirexpress();
 

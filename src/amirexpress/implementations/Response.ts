@@ -1,21 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ServerResponse } from 'node:http';
+import { IncomingMessage, ServerResponse } from 'node:http';
 import { Response as ResponseInterface } from '../types/Response.js';
 
 export class Response extends ServerResponse implements ResponseInterface {
   private statusCodeSet: boolean = false;
 
+  constructor(req: IncomingMessage) {
+    super(req);
+  }
+
   json(data: any): this {
     if (!this.statusCodeSet) {
-      this.statusCode = 200;
+      this.status(200);
     }
-    this.setHeader('Content-Type', 'application/json');
+    if (!this.hasHeader('Content-Type')) {
+      this.setHeader('Content-Type', 'application/json');
+    }
     this.end(JSON.stringify(data));
     return this;
   }
 
   redirect(url: string): this {
-    this.statusCode = 302;
+    this.status(302);
     this.setHeader('Location', url);
     this.end(`Redirecting to ${url}`);
     return this;
@@ -29,12 +35,20 @@ export class Response extends ServerResponse implements ResponseInterface {
 
   send(data: any): this {
     if (!this.statusCodeSet) {
-      this.statusCode = 200;
+      this.status(200);
     }
     if (typeof data === 'object' && !Buffer.isBuffer(data)) {
-      this.setHeader('Content-Type', 'application/json');
+      if (!this.hasHeader('content-Type')) {
+        this.setHeader('content-Type', 'application/json');
+      }
       this.end(JSON.stringify(data));
     } else {
+      if (!this.hasHeader('content-Type')) {
+        this.setHeader(
+          'content-Type',
+          Buffer.isBuffer(data) ? 'application/octet-stream' : 'text/plain'
+        );
+      }
       this.end(data);
     }
     return this;

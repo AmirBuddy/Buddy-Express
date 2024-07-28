@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Response } from './Response.js';
+import { Response } from '../implementations/Response.js';
 import { Request } from './Request.js';
 import { NextFunction } from './NextFunction.js';
 
-type SimpleHandler = (req: Request, res: Response) => void | Promise<void>;
-type NextHandler = (
+export type SimpleHandler = (req: Request, res: Response) => void | Promise<void>;
+export type NextHandler = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => void | Promise<void>;
-type ErrorHandler = (
+export type ErrorHandler = (
   err: any,
   req: Request,
   res: Response,
