@@ -7,15 +7,52 @@ import {
   ErrorHandler
 } from './types/RequestHandler.js';
 import { Request } from './types/Request.js';
-import { Response } from './types/Response.js';
 import { NextFunction } from './types/NextFunction.js';
 import { IRoute } from './types/IRoute.js';
+
+class Response {
+  private res: ServerResponse;
+
+  constructor(res: ServerResponse) {
+    this.res = res;
+  }
+
+  public json(data: object): void {
+    this.res.setHeader('Content-Type', 'application/json');
+    this.res.send(JSON.stringify(data));
+  }
+
+  public redirect(url: string): void {
+    this.res.statusCode = 302;
+    this.res.setHeader('Location', url);
+    this.res.send();
+  }
+
+  public status(code: number): this {
+    this.res.statusCode = code;
+    return this;
+  }
+
+  public send(chunk: any): void {
+    this.res.send(chunk);
+  }
+
+  public get statusCode(): number {
+    return this.res.statusCode;
+  }
+
+  public set statusCode(code: number) {
+    this.res.statusCode = code;
+  }
+
+  public setHeader(name: string, value: string | number | readonly string[]): void {
+    this.res.setHeader(name, value);
+  }
+}
 
 class AmirExpress {
   private requestHandlers: RequestHandler[] = [];
   private routes: IRoute[] = [];
-
-  constructor() {}
 
   use(requestHandler: RequestHandler) {
     this.requestHandlers.push(requestHandler);
@@ -40,9 +77,8 @@ class AmirExpress {
   listen(port: number, callback?: () => void) {
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       const request = req as Request;
-      const response = res as Response;
+      const response = new Response(res);
 
-      // Execute global request handlers
       let idx = 0;
       const next: NextFunction = (err?: any) => {
         if (err) {
@@ -74,7 +110,7 @@ class AmirExpress {
           return this.handleError(err, request, response);
         }
         if (idx >= route.handlers.length) {
-          response.end();
+          response.send();
         } else {
           const handler = route.handlers[idx++];
           this.executeHandler(handler, request, response, next);
@@ -83,7 +119,7 @@ class AmirExpress {
       next();
     } else {
       response.statusCode = 404;
-      response.end('Not Found');
+      response.send('Not Found');
     }
   }
 
@@ -95,7 +131,7 @@ class AmirExpress {
       (errorHandler as ErrorHandler)(err, request, response, () => {});
     } else {
       response.statusCode = 500;
-      response.end('Internal Server Error');
+      response.send('Internal Server Error');
     }
   }
 
@@ -106,7 +142,7 @@ class AmirExpress {
     next: NextFunction
   ) {
     if ((handler as ErrorHandler).length === 4) {
-      next(); // Skip error handlers in normal flow
+      next();
     } else if ((handler as NextHandler).length === 3) {
       (handler as NextHandler)(request, response, next);
     } else {
