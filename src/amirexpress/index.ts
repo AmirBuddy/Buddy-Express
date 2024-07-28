@@ -5,7 +5,7 @@ import { Response } from './implementations/Response.js';
 import { Route } from './types/Route.js';
 
 class AmirExpress {
-  private middlewares: Array<{ path?: string; handler: RequestHandler }>;
+  private middlewares: { path?: string; handler: RequestHandler }[];
   private routes: Record<string, Route[]>;
 
   constructor() {
@@ -29,13 +29,13 @@ class AmirExpress {
     }
   }
 
-  public all(path: string, handler: RequestHandler, ...handlers: RequestHandler[]): void {
-    const allHandlers = [handler, ...handlers];
-    this.addRoute('get', path, allHandlers);
-    this.addRoute('post', path, allHandlers);
-    this.addRoute('put', path, allHandlers);
-    this.addRoute('delete', path, allHandlers);
-  }
+  // public all(path: string, handler: RequestHandler, ...handlers: RequestHandler[]): void {
+  //   const allHandlers = [handler, ...handlers];
+  //   this.addRoute('get', path, allHandlers);
+  //   this.addRoute('post', path, allHandlers);
+  //   this.addRoute('put', path, allHandlers);
+  //   this.addRoute('delete', path, allHandlers);
+  // }
 
   public get(path: string, handler: RequestHandler, ...handlers: RequestHandler[]): void {
     const allHandlers = [handler, ...handlers];
