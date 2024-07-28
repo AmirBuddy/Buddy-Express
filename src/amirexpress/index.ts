@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { RequestHandler } from './types/RequestHandler.js';
 import { Request } from './types/Request.js';
 import { Response } from './implementations/Response.js';
 import { Route } from './types/Route.js';
+import { NextFunction } from './types/NextFunction.js';
 
 class AmirExpress {
   private middlewares: { path?: string; handler: RequestHandler }[];
@@ -90,3 +92,5 @@ class AmirExpress {
 export function amirexpress(): AmirExpress {
   return new AmirExpress();
 }
+
+export { Request, Response, NextFunction, RequestHandler, Route };
