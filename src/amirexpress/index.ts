@@ -9,6 +9,7 @@ import {
 } from './types/RequestHandler.js';
 import { Request } from './types/Request.js';
 import { Response } from './implementations/Response.js';
+import { Response as IResponse } from './types/Response.js';
 import { Route } from './types/Route.js';
 import { NextFunction } from './types/NextFunction.js';
 
@@ -78,7 +79,42 @@ class AmirExpress {
   public listen(port: number, callback?: () => void): void {
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       const request = req as Request;
-      const response = new Response(request);
+      const response = res as IResponse;
+
+      response.status = (code: number) => {
+        res.statusCode = code;
+      };
+
+      response.json = (data: any) => {
+        if (!res.hasHeader('Content-Type')) {
+          res.setHeader('Content-Type', 'application/json');
+        }
+        res.end(JSON.stringify(data));
+      };
+
+      response.redirect = (url: string) => {
+        res.statusCode = 302;
+        res.setHeader('Location', url);
+        res.end(`Redirecting to ${url}`);
+      };
+
+      response.send = (data: any) => {
+        if (typeof data === 'object' && !Buffer.isBuffer(data)) {
+          if (!res.hasHeader('Content-Type')) {
+            res.setHeader('Content-Type', 'application/json');
+          }
+          res.end(JSON.stringify(data));
+        } else {
+          if (!res.hasHeader('Content-Type')) {
+            res.setHeader(
+              'Content-Type',
+              Buffer.isBuffer(data) ? 'application/octet-stream' : 'text/plain'
+            );
+          }
+          res.end(data);
+        }
+      };
+
       this.handleRequest(request, response);
     });
     server.listen(port, callback);
@@ -96,7 +132,8 @@ class AmirExpress {
 
     if (matchingRoutes.length === 0) {
       if (!res.writableEnded) {
-        res.status(404).send('Not Found');
+        res.status(404);
+        res.send('Not Found');
       }
       return;
     }
@@ -117,14 +154,16 @@ class AmirExpress {
           }
         } else {
           if (!res.writableEnded) {
-            res.status(500).send('Internal Server Error');
+            res.status(500);
+            res.send('Internal Server Error');
           }
         }
         return;
       }
       if (index >= handlers.length) {
         if (!res.writableEnded) {
-          res.status(404).send('Not Found');
+          res.status(404);
+          res.send('Not Found');
         }
         return;
       }
