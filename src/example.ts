@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { amirexpress } from './amirexpress/index.js';
 import { Request } from './amirexpress/types/Request.js';
 import { Response } from './amirexpress/implementations/Response.js';
@@ -56,27 +57,31 @@ const errorHandler = (err: Error, req: Request, res: Response, next: NextFunctio
 app.use(requestLogger);
 app.use(jsonParser);
 
-app.get('/', (req: Request, res: Response) => {
+app.use('/user', (req: Request, res: Response, next: NextFunction): void => {
+  console.log('a request to /user');
+});
+
+app.get('/', (req: Request, res: Response): void => {
   res.status(200).send('Hello, world!');
 });
 
 app.use(authenticate);
 
-app.get('/user', additionalMiddleware, (req: Request, res: Response) => {
+app.get('/user', additionalMiddleware, (req: Request, res: Response): void => {
   const { name } = req.query;
   res.status(200).json({ name: name });
 });
 
-app.get('/test/:id', additionalMiddleware, (req: Request, res: Response) => {
+app.get('/test/:id', additionalMiddleware, (req: Request, res: Response): void => {
   const { id } = req.params;
   res.status(200).send(`test number: ${id}`);
 });
 
-app.post('/data', (req: Request, res: Response) => {
+app.post('/data', (req: Request, res: Response): void => {
   res.status(200).send(`Received data: ${JSON.stringify(req.body)}`);
 });
 
-app.delete('/data', (req: Request, res: Response) => {
+app.delete('/data', (req: Request, res: Response): void => {
   res.status(200).send(`Received delete method on /data}`);
 });
 
