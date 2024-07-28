@@ -7,17 +7,10 @@ import { Route } from './types/Route.js';
 import { NextFunction } from './types/NextFunction.js';
 
 class AmirExpress {
-  private middlewares: { path?: string; handler: RequestHandler }[];
-  private routes: Record<string, Route[]>;
+  private orderedRoutes: Route[];
 
   constructor() {
-    this.middlewares = [];
-    this.routes = {
-      get: [],
-      post: [],
-      put: [],
-      delete: []
-    };
+    this.orderedRoutes = [];
   }
 
   public use(handler: RequestHandler): void;
@@ -25,19 +18,24 @@ class AmirExpress {
 
   public use(pathOrHandler: string | RequestHandler, handler?: RequestHandler): void {
     if (typeof pathOrHandler === 'string' && handler) {
-      this.middlewares.push({ path: pathOrHandler, handler });
+      this.orderedRoutes.push({
+        method: 'all',
+        path: pathOrHandler,
+        handlers: [handler]
+      });
     } else if (typeof pathOrHandler === 'function') {
-      this.middlewares.push({ handler: pathOrHandler });
+      this.orderedRoutes.push({
+        method: 'all',
+        path: '*',
+        handlers: [pathOrHandler]
+      });
     }
   }
 
-  // public all(path: string, handler: RequestHandler, ...handlers: RequestHandler[]): void {
-  //   const allHandlers = [handler, ...handlers];
-  //   this.addRoute('get', path, allHandlers);
-  //   this.addRoute('post', path, allHandlers);
-  //   this.addRoute('put', path, allHandlers);
-  //   this.addRoute('delete', path, allHandlers);
-  // }
+  public all(path: string, handler: RequestHandler, ...handlers: RequestHandler[]): void {
+    const allHandlers = [handler, ...handlers];
+    this.addRoute('all', path, allHandlers);
+  }
 
   public get(path: string, handler: RequestHandler, ...handlers: RequestHandler[]): void {
     const allHandlers = [handler, ...handlers];
@@ -68,11 +66,7 @@ class AmirExpress {
   }
 
   private addRoute(method: string, path: string, handlers: RequestHandler[]): void {
-    const applicableMiddlewares = this.middlewares.filter(
-      (mw) => !mw.path || path.startsWith(mw.path)
-    );
-    const allHandlers = [...applicableMiddlewares.map((mw) => mw.handler), ...handlers];
-    this.routes[method].push({ path, handlers: allHandlers });
+    this.orderedRoutes.push({ method, path, handlers });
   }
 
   public listen(port: number, callback?: () => void): void {
@@ -85,7 +79,13 @@ class AmirExpress {
   }
 
   private async handleRequest(req: Request, res: Response): Promise<void> {
-    // Implementation for handling requests goes here
+    const { method, url } = req;
+
+    // Extract all the handlers that this request should go through them
+
+    // Check if there is any handler, if no send 404
+
+    // Implement the mechanism for next function and calling the handlers in order
   }
 }
 

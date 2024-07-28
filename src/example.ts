@@ -82,9 +82,9 @@ app.delete('/data', (req: Request, res: Response): void => {
   res.status(200).send(`Received delete method on /data}`);
 });
 
-// app.all('*', (req: Request, res: Response, next: NextFunction): void => {
-//   next(new Error('Route not found'));
-// });
+app.all('*', (req: Request, res: Response, next: NextFunction): void => {
+  next(new Error('Route not found'));
+});
 
 app.use(errorHandler);
 

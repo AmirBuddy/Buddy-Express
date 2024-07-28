@@ -1,4 +1,3 @@
 node_modules/
 dist/
-code_base/
-good_one/
+v*/
