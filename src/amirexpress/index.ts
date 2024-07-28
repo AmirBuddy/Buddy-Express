@@ -1,6 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
-import { RequestHandler } from './types/RequestHandler.js';
+import {
+  ErrorHandler,
+  NextHandler,
+  RequestHandler,
+  SimpleHandler
+} from './types/RequestHandler.js';
 import { Request } from './types/Request.js';
 import { Response } from './implementations/Response.js';
 import { Route } from './types/Route.js';
@@ -72,7 +78,7 @@ class AmirExpress {
   public listen(port: number, callback?: () => void): void {
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       const request = req as Request;
-      const response = new Response(req);
+      const response = new Response(request);
       this.handleRequest(request, response);
     });
     server.listen(port, callback);
@@ -81,11 +87,64 @@ class AmirExpress {
   private async handleRequest(req: Request, res: Response): Promise<void> {
     const { method, url } = req;
 
-    // Extract all the handlers that this request should go through them
+    // Find matching routes
+    const matchingRoutes = this.orderedRoutes.filter(
+      (route) =>
+        (route.method === (method as string).toLowerCase() || route.method === 'all') &&
+        (route.path === url || route.path === '*')
+    );
 
-    // Check if there is any handler, if no send 404
+    if (matchingRoutes.length === 0) {
+      if (!res.writableEnded) {
+        res.status(404).send('Not Found');
+      }
+      return;
+    }
 
-    // Implement the mechanism for next function and calling the handlers in order
+    // Flatten handlers from matching routes
+    const handlers: RequestHandler[] = matchingRoutes.flatMap((route) => route.handlers);
+
+    // Execute handlers sequentially
+    let index = 0;
+    const next: NextFunction = async (err?: any) => {
+      if (err) {
+        const errorHandler = handlers.find((handler) => handler.length === 4) as
+          | ErrorHandler
+          | undefined;
+        if (errorHandler) {
+          if (!res.writableEnded) {
+            await errorHandler(err, req, res, next);
+          }
+        } else {
+          if (!res.writableEnded) {
+            res.status(500).send('Internal Server Error');
+          }
+        }
+        return;
+      }
+      if (index >= handlers.length) {
+        if (!res.writableEnded) {
+          res.status(404).send('Not Found');
+        }
+        return;
+      }
+
+      const handler = handlers[index++];
+      if (handler.length === 4) {
+        next(err);
+      } else if (handler.length === 3) {
+        if (!res.writableEnded) {
+          await (handler as NextHandler)(req, res, next);
+        }
+      } else {
+        if (!res.writableEnded) {
+          await (handler as SimpleHandler)(req, res);
+        }
+        next();
+      }
+    };
+
+    next();
   }
 }
 

@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IncomingMessage, ServerResponse } from 'node:http';
+import { ServerResponse } from 'node:http';
 import { Response as ResponseInterface } from '../types/Response.js';
+import { Request } from '../types/Request.js';
 
 export class Response extends ServerResponse implements ResponseInterface {
   private statusCodeSet: boolean = false;
 
-  constructor(req: IncomingMessage) {
+  constructor(req: Request) {
     super(req);
   }
 
@@ -38,14 +39,14 @@ export class Response extends ServerResponse implements ResponseInterface {
       this.status(200);
     }
     if (typeof data === 'object' && !Buffer.isBuffer(data)) {
-      if (!this.hasHeader('content-Type')) {
-        this.setHeader('content-Type', 'application/json');
+      if (!this.hasHeader('Content-Type')) {
+        this.setHeader('Content-Type', 'application/json');
       }
       this.end(JSON.stringify(data));
     } else {
-      if (!this.hasHeader('content-Type')) {
+      if (!this.hasHeader('Content-Type')) {
         this.setHeader(
-          'content-Type',
+          'Content-Type',
           Buffer.isBuffer(data) ? 'application/octet-stream' : 'text/plain'
         );
       }
