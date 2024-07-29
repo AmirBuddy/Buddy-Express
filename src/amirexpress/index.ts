@@ -8,7 +8,7 @@ import {
   SimpleHandler
 } from './types/RequestHandler.js';
 import { Request } from './types/Request.js';
-import { Response } from './implementations/Response.js';
+import { mountMethods, Response } from './implementations/Response.js';
 import { Response as IResponse } from './types/Response.js';
 import { Route } from './types/Route.js';
 import { NextFunction } from './types/NextFunction.js';
@@ -81,39 +81,7 @@ class AmirExpress {
       const request = req as Request;
       const response = res as IResponse;
 
-      response.status = (code: number) => {
-        res.statusCode = code;
-      };
-
-      response.json = (data: any) => {
-        if (!res.hasHeader('Content-Type')) {
-          res.setHeader('Content-Type', 'application/json');
-        }
-        res.end(JSON.stringify(data));
-      };
-
-      response.redirect = (url: string) => {
-        res.statusCode = 302;
-        res.setHeader('Location', url);
-        res.end(`Redirecting to ${url}`);
-      };
-
-      response.send = (data: any) => {
-        if (typeof data === 'object' && !Buffer.isBuffer(data)) {
-          if (!res.hasHeader('Content-Type')) {
-            res.setHeader('Content-Type', 'application/json');
-          }
-          res.end(JSON.stringify(data));
-        } else {
-          if (!res.hasHeader('Content-Type')) {
-            res.setHeader(
-              'Content-Type',
-              Buffer.isBuffer(data) ? 'application/octet-stream' : 'text/plain'
-            );
-          }
-          res.end(data);
-        }
-      };
+      mountMethods(response, res);
 
       this.handleRequest(request, response);
     });
