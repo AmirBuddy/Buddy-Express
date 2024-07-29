@@ -75,11 +75,15 @@ app.get('/user', additionalMiddleware, (req: Request, res: Response): void => {
   res.json({ name: name });
 });
 
-app.get('/test/:id', additionalMiddleware, (req: Request, res: Response): void => {
-  const { id } = req.params;
-  res.status(200);
-  res.send(`test number: ${id}`);
-});
+app.get(
+  '/test/:id/lol/:newID',
+  additionalMiddleware,
+  (req: Request, res: Response): void => {
+    const { id, newID } = req.params;
+    res.status(200);
+    res.send(`test number: ${id}, newID: ${newID}`);
+  }
+);
 
 app.post('/data', (req: Request, res: Response): void => {
   res.status(200);
