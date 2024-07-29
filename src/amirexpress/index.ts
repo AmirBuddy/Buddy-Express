@@ -2,6 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { parse } from 'url';
+import { join, normalize } from 'node:path';
+import fs from 'fs-extra';
 import {
   ErrorHandler,
   NextHandler,
@@ -23,7 +25,6 @@ class AmirExpress {
 
   public use(handler: RequestHandler): void;
   public use(path: string, handler: RequestHandler): void;
-
   public use(pathOrHandler: string | RequestHandler, handler?: RequestHandler): void {
     if (typeof pathOrHandler === 'string' && handler) {
       this.orderedRoutes.push({
@@ -77,6 +78,46 @@ class AmirExpress {
     this.orderedRoutes.push({ method, path, handlers });
   }
 
+  public static(root: string): RequestHandler {
+    return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        const parsedUrl = parse(req.url as string, true);
+        const tempPath = parsedUrl.pathname!;
+        const segments = tempPath.split('/');
+        const lastSegment = segments[segments.length - 1];
+        const pathname = decodeURIComponent(lastSegment);
+        const filePath = normalize(join(root, pathname));
+
+        // Prevent access to files outside the root directory
+        if (!filePath.startsWith(root)) {
+          res.status(403);
+          res.send('Forbidden');
+          return;
+        }
+
+        const fileExists = await fs.pathExists(filePath);
+        if (!fileExists) {
+          return next();
+        }
+
+        const stats = await fs.stat(filePath);
+        if (stats.isDirectory()) {
+          res.status(403);
+          res.send('Forbidden');
+          return;
+        }
+
+        res.status(200);
+        const stream = fs.createReadStream(filePath);
+        stream.pipe(res);
+        stream.on('end', () => res.end());
+        stream.on('error', (err) => next(err));
+      } catch (err) {
+        next(err);
+      }
+    };
+  }
+
   public listen(port: number, callback?: () => void): void {
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       const request = req as Request;
@@ -100,11 +141,22 @@ class AmirExpress {
       req.query[key] = Array.isArray(value) ? value.join(',') : (value as string);
     }
 
+    const pathname = parsedUrl.pathname!;
+    const segments = pathname.split('/');
+    const lastSegment = segments[segments.length - 1];
+    if (lastSegment && lastSegment.includes('.')) {
+      segments.pop();
+    }
+    let modifiedPathname = segments.join('/');
+    if (!modifiedPathname.startsWith('/')) {
+      modifiedPathname = '/' + modifiedPathname;
+    }
+
     // Find matching routes
     const matchingRoutes = this.orderedRoutes.filter(
       (route) =>
         (route.method === (method as string).toLowerCase() || route.method === 'all') &&
-        (this.checkPath(route.path, parsedUrl.pathname!, req) || route.path === '*')
+        (this.checkPath(route.path, modifiedPathname!, req) || route.path === '*')
     );
 
     if (matchingRoutes.length === 0) {
@@ -139,8 +191,8 @@ class AmirExpress {
       }
       if (index >= handlers.length) {
         if (!res.writableEnded) {
-          res.status(404);
-          res.send('Not Found');
+          res.status(500);
+          res.send('Internal Server Error');
         }
         return;
       }

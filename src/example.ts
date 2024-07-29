@@ -1,5 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import path from 'node:path';
+import { fileURLToPath } from 'url';
 import { amirexpress, Request, Response, NextFunction } from './amirexpress/index.js';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = amirexpress();
 
@@ -56,6 +60,8 @@ const errorHandler = (err: Error, req: Request, res: Response, next: NextFunctio
 
 app.use(requestLogger);
 app.use(jsonParser);
+
+app.use('/files', app.static(path.join(__dirname, '../', 'public')));
 
 app.use('/user', (req: Request, res: Response, next: NextFunction): void => {
   console.log('a request to /user');
