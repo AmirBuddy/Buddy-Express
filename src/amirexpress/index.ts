@@ -97,14 +97,14 @@ class AmirExpress {
     req.query = {};
     for (const key in parsedUrl.query) {
       const value = parsedUrl.query[key];
-      req.query[key] = Array.isArray(value) ? value.join(',') : value;
+      req.query[key] = Array.isArray(value) ? value.join(',') : (value as string);
     }
 
     // Find matching routes
     const matchingRoutes = this.orderedRoutes.filter(
       (route) =>
         (route.method === (method as string).toLowerCase() || route.method === 'all') &&
-        (route.path === parsedUrl.pathname || route.path === '*')
+        (this.checkPath(route.path, parsedUrl.pathname!, req) || route.path === '*')
     );
 
     if (matchingRoutes.length === 0) {
@@ -161,6 +161,27 @@ class AmirExpress {
     };
 
     next();
+  }
+
+  private checkPath(path: string, reqPath: string, req: Request): boolean {
+    if (!path.includes(':')) {
+      return path === reqPath;
+    }
+
+    const pathParts = path.split('/');
+    const reqPathParts = reqPath.split('/');
+    if (pathParts.length !== reqPathParts.length) return false;
+
+    const params: Record<string, string> = {};
+    for (let i: number = 0; i < pathParts.length; i++) {
+      if (pathParts[i].startsWith(':')) {
+        params[pathParts[i].substring(1)] = reqPathParts[i];
+      } else if (pathParts[i] !== reqPathParts[i]) {
+        return false;
+      }
+    }
+    req.params = { ...params };
+    return true;
   }
 }
 

@@ -2,7 +2,7 @@
 import { IncomingMessage } from 'node:http';
 
 export interface Request extends IncomingMessage {
-  query: Record<string, string | undefined>;
-  params: Record<string, string | undefined>;
+  query: Record<string, string>;
+  params: Record<string, string>;
   body?: any;
 }
