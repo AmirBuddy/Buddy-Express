@@ -98,7 +98,7 @@ app.post('/data', (req: Request, res: Response): void => {
 
 app.delete('/data', (req: Request, res: Response): void => {
   res.status(200);
-  res.send(`Received delete method on /data}`);
+  res.send(`Received delete method on /data`);
 });
 
 app.all('*', (req: Request, res: Response, next: NextFunction): void => {
