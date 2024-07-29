@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
+import { parse } from 'url';
 import {
   ErrorHandler,
   NextHandler,
@@ -91,11 +92,19 @@ class AmirExpress {
   private async handleRequest(req: Request, res: Response): Promise<void> {
     const { method, url } = req;
 
+    // Adding queries of the incoming request to req.query
+    const parsedUrl = parse(url as string, true);
+    req.query = {};
+    for (const key in parsedUrl.query) {
+      const value = parsedUrl.query[key];
+      req.query[key] = Array.isArray(value) ? value.join(',') : value;
+    }
+
     // Find matching routes
     const matchingRoutes = this.orderedRoutes.filter(
       (route) =>
         (route.method === (method as string).toLowerCase() || route.method === 'all') &&
-        (route.path === url || route.path === '*')
+        (route.path === parsedUrl.pathname || route.path === '*')
     );
 
     if (matchingRoutes.length === 0) {

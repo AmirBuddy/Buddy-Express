@@ -70,9 +70,9 @@ app.get('/', (req: Request, res: Response): void => {
 app.use(authenticate);
 
 app.get('/user', additionalMiddleware, (req: Request, res: Response): void => {
-  // const { name } = req.query;
+  const { name } = req.query;
   res.status(200);
-  res.json({ name: 'name' });
+  res.json({ name: name });
 });
 
 app.get('/test/:id', additionalMiddleware, (req: Request, res: Response): void => {
