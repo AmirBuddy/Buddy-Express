@@ -1,5 +1,5 @@
 {
-  "name": "amirexpress",
+  "name": "buddyexpress",
   "version": "1.0.0",
   "type": "module",
   "exports": "./dist/index.js",
@@ -19,7 +19,7 @@
   ],
   "author": "Buddy",
   "license": "ISC",
-  "description": "",
+  "description": "A minimal http router framework close to express that can get the job done in most small apps.",
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.14.12",

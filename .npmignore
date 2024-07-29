@@ -1,5 +1,5 @@
+node_modules/
+.git/
 src/
 tests/
-.git/
-node_modules/
 *.ts

@@ -88,7 +88,6 @@ class AmirExpress {
         const pathname = decodeURIComponent(lastSegment);
         const filePath = normalize(join(root, pathname));
 
-        // Prevent access to files outside the root directory
         if (!filePath.startsWith(root)) {
           res.status(403);
           res.send('Forbidden');
@@ -97,7 +96,7 @@ class AmirExpress {
 
         const fileExists = await fs.pathExists(filePath);
         if (!fileExists) {
-          return next();
+          return next(new Error("Doesn't Exist"));
         }
 
         const stats = await fs.stat(filePath);
@@ -141,6 +140,7 @@ class AmirExpress {
       req.query[key] = Array.isArray(value) ? value.join(',') : (value as string);
     }
 
+    // normalize the pathname if, it may have a file request and that should be handled
     const pathname = parsedUrl.pathname!;
     const segments = pathname.split('/');
     const lastSegment = segments[segments.length - 1];
@@ -167,7 +167,7 @@ class AmirExpress {
       return;
     }
 
-    // Flatten handlers from matching routes
+    // Constructing the responseRouter
     const handlers: RequestHandler[] = matchingRoutes.flatMap((route) => route.handlers);
 
     // Execute handlers sequentially

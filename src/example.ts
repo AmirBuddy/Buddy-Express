@@ -7,12 +7,12 @@ const __dirname = path.dirname(__filename);
 
 const app = amirexpress();
 
-const requestLogger = (req: Request, res: Response, next: NextFunction) => {
+const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
   console.log(`${req.method} ${req.url}`);
   next();
 };
 
-const jsonParser = (req: Request, res: Response, next: NextFunction) => {
+const jsonParser = (req: Request, res: Response, next: NextFunction): void => {
   console.log('json parser is called');
   const contentType = req.headers['content-type'];
   if (!(contentType && contentType.includes('application/json'))) {
@@ -27,14 +27,14 @@ const jsonParser = (req: Request, res: Response, next: NextFunction) => {
       try {
         req.body = JSON.parse(body);
       } catch (e) {
-        return next(new Error('Invalid JSON'));
+        return next(e);
       }
     }
     next();
   });
 };
 
-const authenticate = (req: Request, res: Response, next: NextFunction) => {
+const authenticate = (req: Request, res: Response, next: NextFunction): void => {
   console.log('auth is called');
   const token = req.headers['authorization'];
   if (!token) {
@@ -47,15 +47,20 @@ const authenticate = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const additionalMiddleware = (req: Request, res: Response, next: NextFunction) => {
+const additionalMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   console.log('Additional middleware executed');
   next();
 };
 
-const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+const errorHandler = (
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
   console.error('Error:', err.message);
   res.status(500);
-  res.json({ message: 'Internal server error' });
+  res.json({ message: `Error: ${err.message}` });
 };
 
 app.use(requestLogger);
@@ -99,6 +104,10 @@ app.post('/data', (req: Request, res: Response): void => {
 app.delete('/data', (req: Request, res: Response): void => {
   res.status(200);
   res.send(`Received delete method on /data`);
+});
+
+app.get('/redirect', (req: Request, res: Response): void => {
+  res.redirect('https://www.example.com');
 });
 
 app.all('*', (req: Request, res: Response, next: NextFunction): void => {
