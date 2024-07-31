@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Response } from './Response.js';
-import { Request } from './Request.js';
-import { NextFunction } from './NextFunction.js';
+import { Response } from './Response';
+import { Request } from './Request';
+import { NextFunction } from './NextFunction';
 
 /**
  * Type for a simple request handler.

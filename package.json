@@ -1,15 +1,13 @@
 {
   "name": "buddyexpress",
   "version": "1.0.0",
-  "type": "module",
-  "exports": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "node dist/tests/example.js",
-    "dev": "tsc && node dist/tests/example.js",
-    "lint": "eslint 'src/**/*.ts', 'tests/**/*.ts'",
-    "format": "prettier --write 'src/**/*.ts', 'tests/**/*.ts'"
+    "prepublishOnly": "npm run build",
+    "lint": "eslint 'src/**/*.ts'",
+    "format": "prettier --write 'src/**/*.ts'"
   },
   "keywords": [
     "http",
@@ -18,7 +16,7 @@
     "node"
   ],
   "author": "Buddy",
-  "license": "ISC",
+  "license": "MIT",
   "description": "A minimal http router framework close to express that can get the job done in most small apps.",
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",

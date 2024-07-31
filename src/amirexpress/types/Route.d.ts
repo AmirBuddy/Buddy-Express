@@ -1,4 +1,4 @@
-import { RequestHandler } from './RequestHandler.js';
+import { RequestHandler } from './RequestHandler';
 
 /**
  * The Route type defines the structure of a route object with method, path, and handlers

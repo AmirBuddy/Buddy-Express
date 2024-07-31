@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { IncomingMessage } from 'node:http';
+import { IncomingMessage } from 'http';
 
 /**
  * Interface for a Request which extends the IncomingMessage from Node.js HTTP module.

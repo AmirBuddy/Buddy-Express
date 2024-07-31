@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ServerResponse } from 'node:http';
+import { ServerResponse } from 'http';
 
 /**
  * Interface for a Response which extends the ServerResponse from Node.js HTTP module.

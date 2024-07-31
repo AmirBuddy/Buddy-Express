@@ -1,19 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
-import { parse } from 'url';
+import { parse } from 'node:url';
 import { join, normalize } from 'node:path';
 import fs from 'fs-extra';
 import {
   ErrorHandler,
   NextHandler,
   RequestHandler,
-  SimpleHandler
-} from './types/RequestHandler.js';
-import { Request } from './types/Request.js';
-import { Response } from './types/Response.js';
-import { Route } from './types/Route.js';
-import { NextFunction } from './types/NextFunction.js';
+  SimpleHandler,
+  Request,
+  Response,
+  Route,
+  NextFunction
+} from './types';
 
 class AmirExpress {
   private requestRouter: Route[];
