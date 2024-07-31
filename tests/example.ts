@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import path from 'node:path';
 import { fileURLToPath } from 'url';
-import { amirexpress, Request, Response, NextFunction } from './amirexpress/index.js';
+import {
+  amirexpress,
+  Request,
+  Response,
+  NextFunction
+} from '../src/amirexpress/index.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -10,28 +15,6 @@ const app = amirexpress();
 const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
   console.log(`${req.method} ${req.url}`);
   next();
-};
-
-const jsonParser = (req: Request, res: Response, next: NextFunction): void => {
-  console.log('json parser is called');
-  const contentType = req.headers['content-type'];
-  if (!(contentType && contentType.includes('application/json'))) {
-    return next();
-  }
-  let body = '';
-  req.on('data', (chunk) => {
-    body += chunk.toString();
-  });
-  req.on('end', () => {
-    if (body) {
-      try {
-        req.body = JSON.parse(body);
-      } catch (e) {
-        return next(e);
-      }
-    }
-    next();
-  });
 };
 
 const authenticate = (req: Request, res: Response, next: NextFunction): void => {
@@ -64,9 +47,9 @@ const errorHandler = (
 };
 
 app.use(requestLogger);
-app.use(jsonParser);
+app.use(app.json());
 
-app.use('/files', app.static(path.join(__dirname, '../', 'public')));
+app.use('/files', app.static(path.join(__dirname, '../../', 'public')));
 
 app.use('/user', (req: Request, res: Response, next: NextFunction): void => {
   console.log('a request to /user');

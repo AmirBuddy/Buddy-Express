@@ -73,6 +73,15 @@ class AmirExpress {
     this.addRoute('delete', path, allHandlers);
   }
 
+  public patch(
+    path: string,
+    handler: RequestHandler,
+    ...handlers: RequestHandler[]
+  ): void {
+    const allHandlers = [handler, ...handlers];
+    this.addRoute('patch', path, allHandlers);
+  }
+
   private addRoute(method: string, path: string, handlers: RequestHandler[]): void {
     this.requestRouter.push({ method, path, handlers });
   }
@@ -205,7 +214,7 @@ class AmirExpress {
     next();
   }
 
-  private mountMethods(response: Response, res: ServerResponse<IncomingMessage>) {
+  private mountMethods(response: Response, res: ServerResponse) {
     response.status = (code: number) => {
       res.statusCode = code;
     };
@@ -260,6 +269,29 @@ class AmirExpress {
     }
     req.params = { ...params };
     return true;
+  }
+
+  public json(): RequestHandler {
+    return (req: Request, res: Response, next: NextFunction): void => {
+      const contentType = req.headers['content-type'];
+      if (!(contentType && contentType.includes('application/json'))) {
+        return next();
+      }
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk.toString();
+      });
+      req.on('end', () => {
+        if (body) {
+          try {
+            req.body = JSON.parse(body);
+          } catch (e) {
+            return next(e);
+          }
+        }
+        next();
+      });
+    };
   }
 }
 

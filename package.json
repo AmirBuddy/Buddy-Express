@@ -6,10 +6,10 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/example.js",
-    "dev": "tsc && node dist/example.js",
-    "lint": "eslint 'src/**/*.ts'",
-    "format": "prettier --write 'src/**/*.ts'"
+    "test": "node dist/tests/example.js",
+    "dev": "tsc && node dist/tests/example.js",
+    "lint": "eslint 'src/**/*.ts', 'tests/**/*.ts'",
+    "format": "prettier --write 'src/**/*.ts', 'tests/**/*.ts'"
   },
   "keywords": [
     "http",
