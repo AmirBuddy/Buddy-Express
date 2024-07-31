@@ -98,7 +98,7 @@ app.get(
 
 app.post('/data', (req: Request, res: Response): void => {
   res.status(200);
-  res.send(`Received data: ${JSON.stringify(req.body)}`);
+  res.json(req.body);
 });
 
 app.delete('/data', (req: Request, res: Response): void => {

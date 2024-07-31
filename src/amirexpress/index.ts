@@ -11,29 +11,28 @@ import {
   SimpleHandler
 } from './types/RequestHandler.js';
 import { Request } from './types/Request.js';
-import { mountMethods } from './implementations/Response.js';
 import { Response } from './types/Response.js';
 import { Route } from './types/Route.js';
 import { NextFunction } from './types/NextFunction.js';
 
 class AmirExpress {
-  private orderedRoutes: Route[];
+  private requestRouter: Route[];
 
   constructor() {
-    this.orderedRoutes = [];
+    this.requestRouter = [];
   }
 
   public use(handler: RequestHandler): void;
   public use(path: string, handler: RequestHandler): void;
   public use(pathOrHandler: string | RequestHandler, handler?: RequestHandler): void {
     if (typeof pathOrHandler === 'string' && handler) {
-      this.orderedRoutes.push({
+      this.requestRouter.push({
         method: 'all',
         path: pathOrHandler,
         handlers: [handler]
       });
     } else if (typeof pathOrHandler === 'function') {
-      this.orderedRoutes.push({
+      this.requestRouter.push({
         method: 'all',
         path: '*',
         handlers: [pathOrHandler]
@@ -75,7 +74,7 @@ class AmirExpress {
   }
 
   private addRoute(method: string, path: string, handlers: RequestHandler[]): void {
-    this.orderedRoutes.push({ method, path, handlers });
+    this.requestRouter.push({ method, path, handlers });
   }
 
   public static(root: string): RequestHandler {
@@ -114,7 +113,7 @@ class AmirExpress {
     const server = createServer((req: IncomingMessage, res: ServerResponse): void => {
       const request = req as Request;
       const response = res as Response;
-      mountMethods(response, res);
+      this.mountMethods(response, res);
       this.handleRequest(request, response);
     });
     server.listen(port, callback);
@@ -144,7 +143,7 @@ class AmirExpress {
     }
 
     // Find matching routes
-    const matchingRoutes = this.orderedRoutes.filter(
+    const matchingRoutes = this.requestRouter.filter(
       (route) =>
         (route.method === (method as string).toLowerCase() || route.method === 'all') &&
         this.checkPath(route.path, modifiedPathname!, req)
@@ -158,10 +157,10 @@ class AmirExpress {
       return;
     }
 
-    // Constructing the responseRouter
+    // Constructing the handlers that the request should go through
     const handlers: RequestHandler[] = matchingRoutes.flatMap((route) => route.handlers);
 
-    // Execute handlers sequentially
+    // Execute handlers sequentially (except for the error handler that will be executed without order)
     let index = 0;
     const next: NextFunction = async (err?: any) => {
       if (err) {
@@ -204,6 +203,42 @@ class AmirExpress {
     };
 
     next();
+  }
+
+  private mountMethods(response: Response, res: ServerResponse<IncomingMessage>) {
+    response.status = (code: number) => {
+      res.statusCode = code;
+    };
+
+    response.json = (data: any) => {
+      if (!res.hasHeader('Content-Type')) {
+        res.setHeader('Content-Type', 'application/json');
+      }
+      res.end(JSON.stringify(data));
+    };
+
+    response.redirect = (url: string) => {
+      res.statusCode = 302;
+      res.setHeader('Location', url);
+      res.end(`Redirecting to ${url}`);
+    };
+
+    response.send = (data: any) => {
+      if (typeof data === 'object' && !Buffer.isBuffer(data)) {
+        if (!res.hasHeader('Content-Type')) {
+          res.setHeader('Content-Type', 'application/json');
+        }
+        res.end(JSON.stringify(data));
+      } else {
+        if (!res.hasHeader('Content-Type')) {
+          res.setHeader(
+            'Content-Type',
+            Buffer.isBuffer(data) ? 'application/octet-stream' : 'text/plain'
+          );
+        }
+        res.end(data);
+      }
+    };
   }
 
   private checkPath(path: string, reqPath: string, req: Request): boolean {
