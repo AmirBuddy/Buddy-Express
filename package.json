@@ -9,6 +9,10 @@
     "lint": "eslint 'src/**/*.ts'",
     "format": "prettier --write 'src/**/*.ts'"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AmirBuddy/amir-express-alpha.git"
+  },
   "keywords": [
     "http",
     "router",
