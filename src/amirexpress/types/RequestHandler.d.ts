@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Response } from '../implementations/Response.js';
+import { Response } from './Response.js';
 import { Request } from './Request.js';
 import { NextFunction } from './NextFunction.js';
 

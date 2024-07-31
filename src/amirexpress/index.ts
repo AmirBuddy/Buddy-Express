@@ -11,8 +11,8 @@ import {
   SimpleHandler
 } from './types/RequestHandler.js';
 import { Request } from './types/Request.js';
-import { mountMethods, Response } from './implementations/Response.js';
-import { Response as IResponse } from './types/Response.js';
+import { mountMethods } from './implementations/Response.js';
+import { Response } from './types/Response.js';
 import { Route } from './types/Route.js';
 import { NextFunction } from './types/NextFunction.js';
 
@@ -120,7 +120,7 @@ class AmirExpress {
   public listen(port: number, callback?: () => void): void {
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       const request = req as Request;
-      const response = res as IResponse;
+      const response = res as Response;
 
       mountMethods(response, res);
 
