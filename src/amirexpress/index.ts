@@ -81,6 +81,7 @@ class AmirExpress {
   public static(root: string): RequestHandler {
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
+        // normalize the pathname, it may have a path for the file request and that should be handled
         const parsedUrl = parse(req.url as string, true);
         const tempPath = parsedUrl.pathname!;
         const segments = tempPath.split('/');
@@ -89,21 +90,13 @@ class AmirExpress {
         const filePath = normalize(join(root, pathname));
 
         if (!filePath.startsWith(root)) {
-          res.status(403);
-          res.send('Forbidden');
-          return;
+          return next(new Error('File Path Is Not Correct'));
         }
 
         const fileExists = await fs.pathExists(filePath);
-        if (!fileExists) {
-          return next(new Error("Doesn't Exist"));
-        }
-
         const stats = await fs.stat(filePath);
-        if (stats.isDirectory()) {
-          res.status(403);
-          res.send('Forbidden');
-          return;
+        if (!fileExists || stats.isDirectory()) {
+          return next(new Error("File Doesn't Exist"));
         }
 
         res.status(200);
@@ -118,12 +111,10 @@ class AmirExpress {
   }
 
   public listen(port: number, callback?: () => void): void {
-    const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+    const server = createServer((req: IncomingMessage, res: ServerResponse): void => {
       const request = req as Request;
       const response = res as Response;
-
       mountMethods(response, res);
-
       this.handleRequest(request, response);
     });
     server.listen(port, callback);
@@ -140,7 +131,7 @@ class AmirExpress {
       req.query[key] = Array.isArray(value) ? value.join(',') : (value as string);
     }
 
-    // normalize the pathname if, it may have a file request and that should be handled
+    // normalize the pathname, it may have a file request and that should be handled
     const pathname = parsedUrl.pathname!;
     const segments = pathname.split('/');
     const lastSegment = segments[segments.length - 1];
@@ -156,7 +147,7 @@ class AmirExpress {
     const matchingRoutes = this.orderedRoutes.filter(
       (route) =>
         (route.method === (method as string).toLowerCase() || route.method === 'all') &&
-        (this.checkPath(route.path, modifiedPathname!, req) || route.path === '*')
+        this.checkPath(route.path, modifiedPathname!, req)
     );
 
     if (matchingRoutes.length === 0) {
@@ -217,7 +208,7 @@ class AmirExpress {
 
   private checkPath(path: string, reqPath: string, req: Request): boolean {
     if (!path.includes(':')) {
-      return path === reqPath;
+      return path === reqPath || path === '*';
     }
 
     const pathParts = path.split('/');
