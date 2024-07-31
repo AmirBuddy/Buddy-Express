@@ -267,4 +267,4 @@ export function amirexpress(): AmirExpress {
   return new AmirExpress();
 }
 
-export { Request, Response, NextFunction, RequestHandler, Route };
+export { Request, Response, NextFunction, RequestHandler };
