@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { createServer, IncomingMessage, ServerResponse } from 'node:http';
-import { parse } from 'node:url';
-import { join, normalize } from 'node:path';
+import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { parse } from 'url';
+import { join, normalize } from 'path';
 import fs from 'fs-extra';
 import {
   ErrorHandler,
