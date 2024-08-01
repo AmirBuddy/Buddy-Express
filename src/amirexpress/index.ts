@@ -15,7 +15,7 @@ import {
   NextFunction
 } from './types';
 
-class AmirExpress {
+class BuddyExpress {
   private requestRouter: Route[];
 
   constructor() {
@@ -295,8 +295,8 @@ class AmirExpress {
   }
 }
 
-export function amirexpress(): AmirExpress {
-  return new AmirExpress();
+export function buddyexpress(): BuddyExpress {
+  return new BuddyExpress();
 }
 
 export { Request, Response, NextFunction, RequestHandler };
