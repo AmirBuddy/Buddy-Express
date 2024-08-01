@@ -26,6 +26,83 @@ Here are the key features that our framework will provide:
 
 10. **JSON Body Parser**: `buddyexpress` includes a built-in json body parser middleware `app.json()` using like `app.use(app.json())`.
 
+## Usage
+
+```ts
+import { buddyexpress, Request, Response, NextFunction } from 'buddyexpress';
+import path from 'path';
+
+const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+};
+const additionalMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+  console.log('Additional middleware executed');
+  next();
+};
+const errorHandler = (
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  console.error('Error:', err.message);
+  res.status(500);
+  res.json({ message: `Error: ${err.message}` });
+};
+
+const app = buddyexpress();
+app.use(requestLogger);
+app.use(app.json());
+
+app.use('/files', app.static(path.join(__dirname, 'public')));
+
+app.get('/', (req: Request, res: Response): void => {
+  res.status(200);
+  res.send('Hello, world!');
+});
+
+app.get('/user', additionalMiddleware, (req: Request, res: Response): void => {
+  const { name } = req.query;
+  res.status(200);
+  res.json({ name: name });
+});
+
+app.get(
+  '/test/:id/lol/:newID',
+  additionalMiddleware,
+  (req: Request, res: Response): void => {
+    const { id, newID } = req.params;
+    res.status(200);
+    res.send(`test number: ${id}, newID: ${newID}`);
+  }
+);
+
+app.post('/data', (req: Request, res: Response): void => {
+  res.status(200);
+  res.json(req.body);
+});
+
+app.delete('/data', (req: Request, res: Response): void => {
+  res.status(200);
+  res.send(`Received delete method on /data`);
+});
+
+app.get('/redirect', (req: Request, res: Response): void => {
+  res.redirect('https://www.example.com');
+});
+
+app.all('*', (req: Request, res: Response, next: NextFunction): void => {
+  next(new Error('Route not found'));
+});
+
+app.use(errorHandler);
+
+app.listen(3000, () => {
+  console.log('Server is running on http://localhost:3000');
+});
+```
+
 ## Tech Stack
 Our framework is built using the following technologies:
 
