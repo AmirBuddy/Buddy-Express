@@ -4,7 +4,6 @@ tests/
 old/
 .eslintrc.json
 .prettierrc.json
-README.md
 .gitignore
 .git
 tsconfig.json
