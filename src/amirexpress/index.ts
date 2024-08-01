@@ -160,8 +160,7 @@ class BuddyExpress {
 
     if (matchingRoutes.length === 0) {
       if (!res.writableEnded) {
-        res.status(404);
-        res.send('Not Found');
+        res.status(404).send('Not Found');
       }
       return;
     }
@@ -171,7 +170,7 @@ class BuddyExpress {
 
     // Execute handlers sequentially (except for the error handler that will be executed without order)
     let index = 0;
-    const next: NextFunction = async (err?: any) => {
+    const next: NextFunction = async (err?: any): Promise<void> => {
       if (err) {
         const errorHandler = handlers.find((handler) => handler.length === 4) as
           | ErrorHandler
@@ -182,16 +181,14 @@ class BuddyExpress {
           }
         } else {
           if (!res.writableEnded) {
-            res.status(500);
-            res.send('Internal Server Error');
+            res.status(500).send('Internal Server Error');
           }
         }
         return;
       }
       if (index >= handlers.length) {
         if (!res.writableEnded) {
-          res.status(500);
-          res.send('Internal Server Error');
+          res.status(500).send('Internal Server Error');
         }
         return;
       }
@@ -215,24 +212,25 @@ class BuddyExpress {
   }
 
   private mountMethods(response: Response, res: ServerResponse) {
-    response.status = (code: number) => {
+    response.status = (code: number): Response => {
       res.statusCode = code;
+      return res as Response;
     };
 
-    response.json = (data: any) => {
+    response.json = (data: any): void => {
       if (!res.hasHeader('Content-Type')) {
         res.setHeader('Content-Type', 'application/json');
       }
       res.end(JSON.stringify(data));
     };
 
-    response.redirect = (url: string) => {
+    response.redirect = (url: string): void => {
       res.statusCode = 302;
       res.setHeader('Location', url);
       res.end(`Redirecting to ${url}`);
     };
 
-    response.send = (data: any) => {
+    response.send = (data: any): void => {
       if (typeof data === 'object' && !Buffer.isBuffer(data)) {
         if (!res.hasHeader('Content-Type')) {
           res.setHeader('Content-Type', 'application/json');

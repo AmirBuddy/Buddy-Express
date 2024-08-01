@@ -11,6 +11,6 @@ import { ServerResponse } from 'http';
 export interface Response extends ServerResponse {
   json(data: any): void;
   redirect(url: string): void;
-  status(code: number): void;
+  status(code: number): Response;
   send(data: any): void;
 }
