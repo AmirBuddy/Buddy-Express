@@ -1,53 +1,45 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { parse } from 'url';
-import { join, normalize } from 'path';
-import fs from 'fs-extra';
+import { Router } from './router';
+import { serveStatic } from './static';
+import { mountResponseMethods } from './response-utils';
+import { jsonMiddleware } from './middleware';
 import {
-  ErrorHandler,
-  NextHandler,
-  RequestHandler,
-  SimpleHandler,
   Request,
   Response,
-  Route,
-  NextFunction
+  NextFunction,
+  RequestHandler,
+  SimpleHandler,
+  ErrorHandler,
+  NextHandler
 } from './types';
+import { parse } from 'url';
 
 class BuddyExpress {
-  private requestRouter: Route[];
+  private router: Router;
 
   constructor() {
-    this.requestRouter = [];
+    this.router = new Router();
   }
 
   public use(handler: RequestHandler): void;
   public use(path: string, handler: RequestHandler): void;
   public use(pathOrHandler: string | RequestHandler, handler?: RequestHandler): void {
     if (typeof pathOrHandler === 'string' && handler) {
-      this.requestRouter.push({
-        method: 'all',
-        path: pathOrHandler,
-        handlers: [handler]
-      });
+      this.router.addRoute('all', pathOrHandler, [handler]);
     } else if (typeof pathOrHandler === 'function') {
-      this.requestRouter.push({
-        method: 'all',
-        path: '*',
-        handlers: [pathOrHandler]
-      });
+      this.router.addRoute('all', '*', [pathOrHandler]);
     }
   }
 
   public all(path: string, handler: RequestHandler, ...handlers: RequestHandler[]): void {
     const allHandlers = [handler, ...handlers];
-    this.addRoute('all', path, allHandlers);
+    this.router.addRoute('all', path, allHandlers);
   }
 
   public get(path: string, handler: RequestHandler, ...handlers: RequestHandler[]): void {
     const allHandlers = [handler, ...handlers];
-    this.addRoute('get', path, allHandlers);
+    this.router.addRoute('get', path, allHandlers);
   }
 
   public post(
@@ -56,12 +48,12 @@ class BuddyExpress {
     ...handlers: RequestHandler[]
   ): void {
     const allHandlers = [handler, ...handlers];
-    this.addRoute('post', path, allHandlers);
+    this.router.addRoute('post', path, allHandlers);
   }
 
   public put(path: string, handler: RequestHandler, ...handlers: RequestHandler[]): void {
     const allHandlers = [handler, ...handlers];
-    this.addRoute('put', path, allHandlers);
+    this.router.addRoute('put', path, allHandlers);
   }
 
   public delete(
@@ -70,7 +62,7 @@ class BuddyExpress {
     ...handlers: RequestHandler[]
   ): void {
     const allHandlers = [handler, ...handlers];
-    this.addRoute('delete', path, allHandlers);
+    this.router.addRoute('delete', path, allHandlers);
   }
 
   public patch(
@@ -79,42 +71,12 @@ class BuddyExpress {
     ...handlers: RequestHandler[]
   ): void {
     const allHandlers = [handler, ...handlers];
-    this.addRoute('patch', path, allHandlers);
-  }
-
-  private addRoute(method: string, path: string, handlers: RequestHandler[]): void {
-    this.requestRouter.push({ method, path, handlers });
+    this.router.addRoute('patch', path, allHandlers);
   }
 
   public static(root: string): RequestHandler {
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-      try {
-        // normalize the pathname, it may have a path for the file request and that should be handled
-        const parsedUrl = parse(req.url as string, true);
-        const tempPath = parsedUrl.pathname!;
-        const segments = tempPath.split('/');
-        const lastSegment = segments[segments.length - 1];
-        const pathname = decodeURIComponent(lastSegment);
-        const filePath = normalize(join(root, pathname));
-
-        if (!filePath.startsWith(root)) {
-          return next(new Error('File Path Is Not Correct'));
-        }
-
-        const fileExists = await fs.pathExists(filePath);
-        const stats = await fs.stat(filePath);
-        if (!fileExists || stats.isDirectory()) {
-          return next(new Error("File Doesn't Exist"));
-        }
-
-        res.status(200);
-        const stream = fs.createReadStream(filePath);
-        stream.pipe(res);
-        stream.on('end', () => res.end());
-        stream.on('error', (err) => next(err));
-      } catch (err) {
-        next(err);
-      }
+      await serveStatic(root, req, res, next);
     };
   }
 
@@ -122,7 +84,7 @@ class BuddyExpress {
     const server = createServer((req: IncomingMessage, res: ServerResponse): void => {
       const request = req as Request;
       const response = res as Response;
-      this.mountMethods(response, res);
+      mountResponseMethods(response, res);
       this.handleRequest(request, response);
     });
     server.listen(port, callback);
@@ -130,17 +92,14 @@ class BuddyExpress {
 
   private async handleRequest(req: Request, res: Response): Promise<void> {
     const { method, url } = req;
-
-    // Adding queries of the incoming request to req.query
     const parsedUrl = parse(url as string, true);
+    const pathname = parsedUrl.pathname!;
     req.query = {};
     for (const key in parsedUrl.query) {
       const value = parsedUrl.query[key];
       req.query[key] = Array.isArray(value) ? value.join(',') : (value as string);
     }
 
-    // normalize the pathname, it may have a file request and that should be handled
-    const pathname = parsedUrl.pathname!;
     const segments = pathname.split('/');
     const lastSegment = segments[segments.length - 1];
     if (lastSegment && lastSegment.includes('.')) {
@@ -151,11 +110,10 @@ class BuddyExpress {
       modifiedPathname = '/' + modifiedPathname;
     }
 
-    // Find matching routes
-    const matchingRoutes = this.requestRouter.filter(
-      (route) =>
-        (route.method === (method as string).toLowerCase() || route.method === 'all') &&
-        this.checkPath(route.path, modifiedPathname!, req)
+    const matchingRoutes = this.router.matchRoute(
+      method as string,
+      modifiedPathname,
+      req
     );
 
     if (matchingRoutes.length === 0) {
@@ -165,10 +123,8 @@ class BuddyExpress {
       return;
     }
 
-    // Constructing the handlers that the request should go through
     const handlers: RequestHandler[] = matchingRoutes.flatMap((route) => route.handlers);
 
-    // Execute handlers sequentially (except for the error handler that will be executed without order)
     let index = 0;
     const next: NextFunction = async (err?: any): Promise<void> => {
       if (err) {
@@ -211,85 +167,8 @@ class BuddyExpress {
     next();
   }
 
-  private mountMethods(response: Response, res: ServerResponse) {
-    response.status = (code: number): Response => {
-      res.statusCode = code;
-      return res as Response;
-    };
-
-    response.json = (data: any): void => {
-      if (!res.hasHeader('Content-Type')) {
-        res.setHeader('Content-Type', 'application/json');
-      }
-      res.end(JSON.stringify(data));
-    };
-
-    response.redirect = (url: string): void => {
-      res.statusCode = 302;
-      res.setHeader('Location', url);
-      res.end(`Redirecting to ${url}`);
-    };
-
-    response.send = (data: any): void => {
-      if (typeof data === 'object' && !Buffer.isBuffer(data)) {
-        if (!res.hasHeader('Content-Type')) {
-          res.setHeader('Content-Type', 'application/json');
-        }
-        res.end(JSON.stringify(data));
-      } else {
-        if (!res.hasHeader('Content-Type')) {
-          res.setHeader(
-            'Content-Type',
-            Buffer.isBuffer(data) ? 'application/octet-stream' : 'text/plain'
-          );
-        }
-        res.end(data);
-      }
-    };
-  }
-
-  private checkPath(path: string, reqPath: string, req: Request): boolean {
-    if (!path.includes(':')) {
-      return path === reqPath || path === '*';
-    }
-
-    const pathParts = path.split('/');
-    const reqPathParts = reqPath.split('/');
-    if (pathParts.length !== reqPathParts.length) return false;
-
-    const params: Record<string, string> = {};
-    for (let i: number = 0; i < pathParts.length; i++) {
-      if (pathParts[i].startsWith(':')) {
-        params[pathParts[i].substring(1)] = reqPathParts[i];
-      } else if (pathParts[i] !== reqPathParts[i]) {
-        return false;
-      }
-    }
-    req.params = { ...params };
-    return true;
-  }
-
   public json(): RequestHandler {
-    return (req: Request, res: Response, next: NextFunction): void => {
-      const contentType = req.headers['content-type'];
-      if (!(contentType && contentType.includes('application/json'))) {
-        return next();
-      }
-      let body = '';
-      req.on('data', (chunk) => {
-        body += chunk.toString();
-      });
-      req.on('end', () => {
-        if (body) {
-          try {
-            req.body = JSON.parse(body);
-          } catch (e) {
-            return next(e);
-          }
-        }
-        next();
-      });
-    };
+    return jsonMiddleware();
   }
 }
 
